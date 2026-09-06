@@ -1,0 +1,42 @@
+#!/bin/sh
+# Локальна заміна платного "secret scanning for non-provider patterns".
+#
+# GitHub безкоштовно ловить лише секрети відомих провайдерів (AWS, Stripe тощо).
+# Токен на кшталт alerts.in.ua — просто довільний рядок, під жоден шаблон він
+# не підпадає, тож push protection його не зупинить. Цей хук зупиняє раніше:
+# до створення коміту.
+#
+# Увімкнення (робиться раз на клон):  git config core.hooksPath .githooks
+# Разовий обхід, якщо впевнений:      git commit --no-verify
+set -eu
+
+fail() { printf '\n\033[31mКОМІТ ЗУПИНЕНО:\033[0m %s\n' "$1" >&2; exit 1; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+# 1. Файли, яких у репозиторії бути не може
+for f in $staged; do
+    case "$f" in
+        .env|*/.env|.env.local|*.db|*.db.gz|DEPLOY.local.md|backup.log)
+            fail "файл '$f' не має потрапляти в репозиторій. Перевір .gitignore." ;;
+    esac
+done
+
+# 2. Реальне значення замість плейсхолдера в присвоєннях секретів.
+#    Шукаємо тільки в доданих рядках (+), щоб не спотикатись об старий код.
+suspect=$(git diff --cached -U0 -- $staged \
+    | grep -E '^\+' \
+    | grep -viE '^\+\+\+' \
+    | grep -inE '(token|secret|password|passwd|api_?key)[[:space:]]*[=:][[:space:]]*["'"'"']?[A-Za-z0-9_/+.-]{16,}' \
+    | grep -viE 'put_your|your_token|<[^>]+>|example|placeholder|changeme|os\.environ|getenv|process\.env|\$\{|\$\(|@param|:[[:space:]]*str|None|""|'"''" \
+    || true)
+
+if [ -n "$suspect" ]; then
+    printf '\n\033[31mКОМІТ ЗУПИНЕНО:\033[0m схоже на справжній секрет у доданих рядках:\n\n' >&2
+    printf '%s\n' "$suspect" | sed 's/^/    /' >&2
+    printf '\nЯкщо це хибне спрацювання: git commit --no-verify\n' >&2
+    exit 1
+fi
+
+exit 0
