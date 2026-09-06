@@ -1,0 +1,106 @@
+:root{
+  --bg:#12151b; --panel:#1b1f27; --line:#2b313d; --fg:#e8ecf2; --muted:#93a0b4;
+  --accent:#ff7a59; --accent-soft:#ff7a5933; --ok:#4ec9a0;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+/* Явний display у .cards/.row перебиває [hidden] з UA-стилів,
+   тому перемикання режимів без цього рядка не ховає нічого. */
+[hidden]{display:none!important}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:0 14px env(safe-area-inset-bottom);
+  max-width:720px; margin-inline:auto;
+}
+header{padding:18px 0 8px}
+h1{font-size:20px;margin:0}
+h2{font-size:14px;margin:22px 0 8px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sub{margin:4px 0 0;color:var(--muted);font-size:12px}
+
+form{display:flex;flex-direction:column;gap:10px;margin:8px 0 4px}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+label.inline{flex-direction:row;align-items:center;gap:8px;color:var(--fg);font-size:14px}
+label.grow{flex:1}
+input,select,button{
+  font:inherit; color:var(--fg); background:var(--panel);
+  border:1px solid var(--line); border-radius:10px; padding:11px 12px;
+}
+input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:var(--accent)}
+.row{display:flex;gap:8px;align-items:flex-end}
+.nav{display:flex;gap:6px}
+.nav button{padding:11px 13px;min-width:44px}
+.nav button:active{background:var(--line)}
+
+.warn{background:#3a2a14;border:1px solid #6b4a1d;border-radius:10px;padding:10px 12px;font-size:13px;margin:14px 0 0}
+
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.card b{display:block;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
+.card span{font-size:11px;color:var(--muted)}
+
+.chart-wrap{margin-top:4px}
+#chart{position:relative;height:56px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+#chart .grid{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+#chart .bar{position:absolute;top:8px;bottom:8px;background:var(--accent);border-radius:3px;min-width:2px}
+#chart .bar.ongoing{background:repeating-linear-gradient(45deg,var(--accent),var(--accent) 5px,#c95a3f 5px,#c95a3f 10px)}
+.hours{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:4px;font-variant-numeric:tabular-nums}
+
+#list .item{
+  display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;margin-bottom:6px;
+}
+#list .when{font-variant-numeric:tabular-nums}
+#list .place{font-size:11px;color:var(--muted);display:block}
+#list .dur{font-variant-numeric:tabular-nums;color:var(--accent);white-space:nowrap;font-weight:600}
+#list .flag{font-size:10px;color:var(--muted);display:block;text-align:right}
+.empty{color:var(--muted);padding:14px 0}
+footer{color:var(--muted);font-size:11px;padding:24px 0 20px;text-align:center}
+@media (min-width:560px){ .cards{grid-template-columns:repeat(4,1fr)} }
+
+/* --- перемикач режимів --- */
+.modes{display:flex;gap:6px;margin:10px 0 2px}
+.modes button{
+  flex:1;background:var(--panel);border:1px solid var(--line);color:var(--muted);
+  padding:10px 8px;border-radius:10px;font-size:13px;
+}
+.modes button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--fg);font-weight:600}
+
+/* --- порівняння днів --- */
+#cmp-chart{
+  display:flex;align-items:flex-end;gap:2px;height:180px;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:10px 8px;
+}
+#cmp-chart .col{
+  /* basis 0 + min-width 0: ширину задає розподіл, а не текст підпису.
+     Інакше стовпець розтягується під «08.08» і 30 днів не влазять в екран. */
+  flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;
+  height:100%;cursor:pointer;
+}
+#cmp-chart .col .fill{
+  background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;
+  transition:background .12s;
+}
+#cmp-chart .col.sel .fill{background:#ffd166}
+#cmp-chart .col.uncovered .fill{background:var(--line)}
+/* Вісь дат — ОКРЕМИЙ рядок під діаграмою.
+   Поки підписи жили всередині стовпців, вони йшли за їхньою висотою
+   і розкладались шахами. Тут вони на одній лінії, по одному під кожним днем.
+   Padding і gap мусять точно збігатися з #cmp-chart, інакше з'їде вирівнювання. */
+/* padding 9px = 8px паддінга діаграми + 1px її рамки: інакше вісь ширша
+   за смугу стовпців на 2px, і зсув накопичується — на 60 днях це вже ~7px. */
+.cmp-axis{display:flex;gap:2px;padding:4px 9px 0;}
+.cmp-axis span{
+  flex:1 1 0;min-width:0;text-align:center;
+  font-size:9px;line-height:1.2;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.cmp-axis span.first{color:var(--fg);font-weight:600}   /* перше число місяця */
+.cmp-axis span.sel{color:var(--accent);font-weight:700}
+/* Довгі періоди: числа не влазять горизонтально — ставимо їх вертикально. */
+.cmp-axis.dense span{writing-mode:vertical-rl;transform:rotate(180deg);height:26px;margin-inline:auto}
+.cmp-legend{margin-top:10px;font-size:13px;color:var(--muted);min-height:40px}
+.cmp-legend b{color:var(--fg);font-size:15px}
+.cmp-legend .hint{font-size:11px}

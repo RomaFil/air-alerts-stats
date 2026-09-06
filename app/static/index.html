@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12151b">
+<title>Тривоги — статистика за добу</title>
+<link rel="stylesheet" href="/static/style.css?v={{v}}">
+</head>
+<body>
+<header>
+  <h1>Повітряні тривоги</h1>
+  <p class="sub" id="status">…</p>
+</header>
+
+<div class="modes" role="tablist">
+  <button type="button" id="mode-day" class="on" role="tab" aria-selected="true">Одна доба</button>
+  <button type="button" id="mode-cmp" role="tab" aria-selected="false">Порівняння днів</button>
+</div>
+
+<form id="controls" autocomplete="off">
+  <label>
+    <span>Регіон</span>
+    <input type="search" id="filter" placeholder="Фільтр: почніть друкувати назву…">
+    <select id="region"></select>
+  </label>
+  <div class="row">
+    <label class="grow">
+      <span>Дата</span>
+      <input type="date" id="date">
+    </label>
+    <div class="nav">
+      <button type="button" id="prev" aria-label="Попередній день">‹</button>
+      <button type="button" id="today">Сьогодні</button>
+      <button type="button" id="next" aria-label="Наступний день">›</button>
+    </div>
+  </div>
+  <label class="inline">
+    <input type="checkbox" id="children" checked>
+    <span>Враховувати райони області</span>
+  </label>
+  <div class="row" id="span-row" hidden>
+    <label class="grow">
+      <span>Період, що закінчується обраною датою</span>
+      <select id="span">
+        <option value="7">7 днів</option>
+        <option value="14" selected>14 днів</option>
+        <option value="30">30 днів</option>
+        <option value="60">60 днів</option>
+      </select>
+    </label>
+    <label class="grow">
+      <span>Показник</span>
+      <select id="metric">
+        <option value="hours">Тривалість</option>
+        <option value="count">Кількість тривог</option>
+      </select>
+    </label>
+  </div>
+</form>
+
+<main>
+  <div id="warn" class="warn" hidden></div>
+
+  <section class="cards" id="cards-day">
+    <div class="card"><b id="c-count">—</b><span>тривог</span></div>
+    <div class="card"><b id="c-total">—</b><span>сумарно</span></div>
+    <div class="card"><b id="c-long">—</b><span>найдовша</span></div>
+    <div class="card"><b id="c-share">—</b><span>доби під тривогою</span></div>
+  </section>
+
+  <section class="cards" id="cards-cmp" hidden>
+    <div class="card"><b id="k-avgc">—</b><span>тривог за добу, у середньому</span></div>
+    <div class="card"><b id="k-avgt">—</b><span>під тривогою за добу</span></div>
+    <div class="card"><b id="k-maxd">—</b><span>найгірший день</span></div>
+    <div class="card"><b id="k-mint">—</b><span>найспокійніший день</span></div>
+  </section>
+
+  <div id="view-day">
+    <section class="chart-wrap">
+      <h2>Доба погодинно</h2>
+      <div id="chart"></div>
+      <div class="hours"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+    </section>
+
+    <section>
+      <h2>Список тривог</h2>
+      <div id="list"></div>
+    </section>
+  </div>
+
+  <div id="view-cmp" hidden>
+    <section>
+      <h2 id="cmp-title">Порівняння днів</h2>
+      <div id="cmp-chart"></div>
+      <div id="cmp-axis" class="cmp-axis"></div>
+      <div id="cmp-legend" class="cmp-legend"></div>
+    </section>
+  </div>
+</main>
+
+<footer id="footer">Власний збирач · час київський</footer>
+<script src="/static/app.js?v={{v}}"></script>
+</body>
+</html>

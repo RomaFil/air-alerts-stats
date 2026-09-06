@@ -1,0 +1,17 @@
+# Нормалізація кінців рядків. Проєкт розробляється на Windows, а виконується
+# в Linux-контейнері: shell-скрипт з CRLF там падає з `bash\r: No such file`.
+* text=auto eol=lf
+
+*.sh      text eol=lf
+Dockerfile text eol=lf
+*.py      text eol=lf
+*.yml     text eol=lf
+*.js      text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+*.md      text eol=lf
+
+*.png binary
+*.jpg binary
+*.gz  binary
+*.db  binary

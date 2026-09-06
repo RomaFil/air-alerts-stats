@@ -1,0 +1,31 @@
+# Секрети
+.env
+
+# Дані та бекапи
+*.db
+*.db-wal
+*.db-shm
+*.db.gz
+backups/
+data/
+backup.log
+
+# Локальна інфраструктура — реальні адреси, користувачі, порти.
+# Тримати поза репозиторієм: у публічному README лише плейсхолдери.
+DEPLOY.local.md
+
+# Особиста нотатка з Obsidian-сховища, не частина проєкту
+air-alerts-stats.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Редактори / ОС
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
