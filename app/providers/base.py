@@ -36,9 +36,13 @@ def synthetic_id(provider: str, uid: int, alert_type: str, started_at: str) -> i
     Той самий (регіон, тип, початок) завжди дає те саме число, тому повторні
     опитування оновлюють один рядок, а не плодять дублі. 62 біти — влазить
     у SQLite INTEGER і не конфліктує з id від alerts.in.ua (вони малі).
+
+    Хеш тут потрібен лише як детермінований ідентифікатор публічних даних,
+    а не як криптографічний захист. SHA-256 узято замість SHA-1 просто тому,
+    що він не гірший, а статичні аналізатори на SHA-1 справедливо лаються.
     """
     key = f"{provider}:{uid}:{alert_type}:{started_at}".encode()
-    return int.from_bytes(hashlib.sha1(key).digest()[:8], "big") >> 2 | (1 << 61)
+    return int.from_bytes(hashlib.sha256(key).digest()[:8], "big") >> 2 | (1 << 61)
 
 
 class Provider:
