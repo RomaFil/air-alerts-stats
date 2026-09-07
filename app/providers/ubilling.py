@@ -2,7 +2,8 @@
 
 Ключа не потребує. Віддає для кожної області alertnow + changed (момент зміни
 стану), тобто початок тривоги точний, а не з точністю до інтервалу опитування.
-Районів не має.
+Районів не має. Рівня тривоги (жовтий/червоний) теж не має — на відміну від
+siren і alerts.in.ua, у фіді є лише булеве alertnow.
 """
 from __future__ import annotations
 
@@ -60,6 +61,7 @@ class UbillingProvider(Provider):
                 "location_title": title,
                 "location_type": "oblast",
                 "alert_type": "air_raid",
+                "alert_level": None,   # фід віддає лише alertnow, кольору не має
                 "started_at": started,
                 "finished_at": None,
             })

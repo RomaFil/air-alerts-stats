@@ -1,6 +1,7 @@
 :root{
   --bg:#12151b; --panel:#1b1f27; --line:#2b313d; --fg:#e8ecf2; --muted:#93a0b4;
   --accent:#ff7a59; --accent-soft:#ff7a5933; --ok:#4ec9a0;
+  --warn-yellow:#e8b93a;
   color-scheme: dark;
 }
 *{box-sizing:border-box}
@@ -39,11 +40,22 @@ input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:var(--accent)
 .card b{display:block;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums}
 .card span{font-size:11px;color:var(--muted)}
 
+/* Жовтий рівень (дрони) проти червоного (ракети). Колір не єдина ознака:
+   у списку поруч є словесна мітка — інакше різницю не побачить ані
+   дальтонік, ані той, хто дивиться в телефон на сонці. */
+.levels{margin:8px 0 0;color:var(--muted);font-size:12px}
+.levels .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:baseline}
+.levels .dot.red{background:var(--accent)}
+.levels .dot.yellow{background:var(--warn-yellow)}
+.levels .dot.unknown{background:var(--muted)}
+
 .chart-wrap{margin-top:4px}
 #chart{position:relative;height:56px;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 #chart .grid{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
 #chart .bar{position:absolute;top:8px;bottom:8px;background:var(--accent);border-radius:3px;min-width:2px}
+#chart .bar.yellow{background:var(--warn-yellow)}
 #chart .bar.ongoing{background:repeating-linear-gradient(45deg,var(--accent),var(--accent) 5px,#c95a3f 5px,#c95a3f 10px)}
+#chart .bar.yellow.ongoing{background:repeating-linear-gradient(45deg,var(--warn-yellow),var(--warn-yellow) 5px,#b8901f 5px,#b8901f 10px)}
 .hours{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:4px;font-variant-numeric:tabular-nums}
 
 #list .item{

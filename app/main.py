@@ -76,6 +76,7 @@ def api_status():
             "last_backfill_at": db.get_meta(conn, "last_backfill_at"),
             "last_regions_refresh_at": db.get_meta(conn, "last_regions_refresh_at"),
             "coverage_start": db.get_meta(conn, "coverage_start"),
+            "levels_since": db.get_meta(conn, "levels_since"),
             "timezone": str(TZ),
         }
 
@@ -99,7 +100,7 @@ def api_stats(
     placeholders = ",".join("?" * len(uids))
     sql = f"""
         SELECT id, location_uid, location_title, location_type, alert_type,
-               started_at, finished_at, finished_source
+               alert_level, started_at, finished_at, finished_source
         FROM alerts
         WHERE location_uid IN ({placeholders})
           AND started_at < ?
@@ -116,8 +117,10 @@ def api_stats(
         coverage_start = db.get_meta(conn, "coverage_start") or conn.execute(
             "SELECT MIN(started_at) m FROM alerts"
         ).fetchone()["m"]
+        levels_since = db.get_meta(conn, "levels_since")
 
     items = []
+    levels = {"red": 0, "yellow": 0, "unknown": 0}
     spans: list[tuple[datetime, datetime]] = []
     for r in rows:
         s = parse_iso(r["started_at"])
@@ -129,12 +132,15 @@ def api_stats(
         if ce <= cs:
             continue
         spans.append((cs, ce))
+        level = r["alert_level"] if r["alert_level"] in ("red", "yellow") else None
+        levels["unknown" if level is None else level] += 1
         items.append({
             "id": r["id"],
             "location_uid": r["location_uid"],
             "location_title": r["location_title"] or regions.title(r["location_uid"]),
             "location_type": r["location_type"],
             "alert_type": r["alert_type"],
+            "alert_level": level,
             "started_at": s.astimezone(TZ).isoformat(),
             "finished_at": f.astimezone(TZ).isoformat() if f else None,
             "ongoing": ongoing,
@@ -161,6 +167,13 @@ def api_stats(
         "sum_seconds": raw_seconds,          # сума окремих тривог (може двоїтись обл./район)
         "longest_seconds": max((i["duration_seconds"] for i in items), default=0),
         "coverage_start": coverage_start,
+        "levels": levels,
+        "levels_since": levels_since,
+        # Розбивку за кольором має сенс показувати лише з дати, коли джерела
+        # почали їх розрізняти. До неї в базі суцільний 'red' — значення за
+        # замовчуванням від API, а не оцінка загрози, і видавати його за
+        # статистику було б тією ж помилкою, що й coverage_start з MIN().
+        "levels_known": bool(levels_since and day.isoformat() >= levels_since),
         # full   — доба цілком у межах збору
         # partial— збір почався всередині доби (тривоги, що вже тривали, порахуються
         #          правильно: джерело віддає їхній справжній початок; бракує лише тих,

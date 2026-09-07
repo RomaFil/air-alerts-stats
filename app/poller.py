@@ -20,6 +20,12 @@ BACKFILL_INTERVAL_HOURS = float(os.environ.get("BACKFILL_INTERVAL_HOURS", "12"))
 BACKFILL_SPACING = float(os.environ.get("BACKFILL_SPACING", "35"))
 REGIONS_REFRESH_HOURS = float(os.environ.get("REGIONS_REFRESH_HOURS", "24"))
 
+# Дата, з якої джерела почали розрізняти жовтий і червоний рівні тривоги.
+# Раніші записи backfill проставить червоними, бо API так їх і віддає, але
+# це значення за замовчуванням, а не оцінка загрози — тому UI за ті дати
+# розбивку не показує. Той самий прийом, що й coverage_start.
+LEVELS_SINCE = os.environ.get("LEVELS_SINCE", "2026-09-07")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s poller: %(message)s",
@@ -125,6 +131,8 @@ def main() -> int:
         if not db.get_meta(conn, "coverage_start"):
             db.set_meta(conn, "coverage_start", db.utcnow())
             log.info("початок збору зафіксовано: %s", db.get_meta(conn, "coverage_start"))
+        if not db.get_meta(conn, "levels_since"):
+            db.set_meta(conn, "levels_since", LEVELS_SINCE)
 
     try:
         provider = get_provider()

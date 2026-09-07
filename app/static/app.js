@@ -66,10 +66,13 @@ function renderChart(data) {
     const s = new Date(a.clip_start).getTime() - dayStart.getTime();
     const e = new Date(a.clip_end).getTime() - dayStart.getTime();
     const bar = document.createElement('div');
-    bar.className = 'bar' + (a.ongoing ? ' ongoing' : '');
+    bar.className = 'bar'
+      + (a.alert_level === 'yellow' ? ' yellow' : '')
+      + (a.ongoing ? ' ongoing' : '');
     bar.style.left = Math.max(0, (s / span) * 100) + '%';
     bar.style.width = Math.max(0.4, ((e - s) / span) * 100) + '%';
-    bar.title = `${a.location_title}: ${hhmm(a.clip_start)}–${hhmm(a.clip_end)}`;
+    bar.title = `${a.location_title}: ${hhmm(a.clip_start)}–${hhmm(a.clip_end)}`
+      + (LEVEL_NAMES[a.alert_level] ? ` (${LEVEL_NAMES[a.alert_level]})` : '');
     chart.appendChild(bar);
   }
 }
@@ -83,6 +86,9 @@ function renderList(data) {
   list.innerHTML = data.alerts
     .map((a) => {
       const flags = [];
+      // Рівень словами, а не лише кольором смужки: у списку кольору немає,
+      // та й на колір як єдину ознаку покладатись не можна.
+      if (LEVEL_NAMES[a.alert_level]) flags.push(LEVEL_NAMES[a.alert_level]);
       if (a.ongoing) flags.push('триває');
       if (a.clipped) flags.push('переходить через добу');
       if (a.estimated_end) flags.push('кінець оцінено збирачем');
@@ -100,12 +106,37 @@ function renderList(data) {
     .join('');
 }
 
+// Червоний — ракетна/комбінована загроза, жовтий — дрони.
+const LEVEL_NAMES = { red: 'червона', yellow: 'жовта' };
+
+function renderLevels(data) {
+  const box = $('levels');
+  // До дати, з якої джерела почали розрізняти рівні, у базі суцільний 'red'
+  // за замовчуванням — показувати з нього розбивку означало б вигадувати.
+  if (!data.levels_known || !data.count) {
+    box.hidden = true;
+    return;
+  }
+  const lv = data.levels || {};
+  // Числа з відповіді проганяємо через Number: нижче вони йдуть в innerHTML,
+  // і це єдине місце в рядку рівнів, куди взагалі потрапляють дані ззовні.
+  const num = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Math.trunc(Number(v))) : 0);
+  const red = num(lv.red), yellow = num(lv.yellow), unknown = num(lv.unknown);
+  const parts = [];
+  if (red) parts.push(`<span class="dot red"></span>${red} ${plural(red, 'червона', 'червоні', 'червоних')}`);
+  if (yellow) parts.push(`<span class="dot yellow"></span>${yellow} ${plural(yellow, 'жовта', 'жовті', 'жовтих')}`);
+  if (unknown) parts.push(`<span class="dot unknown"></span>${unknown} без рівня`);
+  box.hidden = !parts.length;
+  box.innerHTML = parts.join(' · ');
+}
+
 function renderCards(data) {
   $('c-count').textContent = data.count;
   $('c-count').nextElementSibling.textContent = plural(data.count, 'тривога', 'тривоги', 'тривог');
   $('c-total').textContent = fmtDur(data.total_seconds);
   $('c-long').textContent = fmtDur(data.longest_seconds);
   $('c-share').textContent = (data.total_seconds / 864).toFixed(1) + '%';
+  renderLevels(data);
 }
 
 // ---- порівняння днів ---------------------------------------------------
@@ -220,6 +251,7 @@ function setMode(mode) {
   $('view-day').hidden = !day;
   $('view-cmp').hidden = day;
   $('cards-day').hidden = !day;
+  if (!day) $('levels').hidden = true;
   $('cards-cmp').hidden = day;
   $('span-row').hidden = day;
   refresh();
@@ -241,6 +273,11 @@ async function load() {
     const r = await fetch(`/api/stats?uid=${uid}&date=${date}&scope=${scope}`);
     if (!r.ok) throw new Error(await r.text());
     const data = await r.json();
+    // За добу до levels_since у базі суцільний 'red' — це значення за
+    // замовчуванням від API, а не оцінка загрози. Ховати зведення, але лишати
+    // кольорові смужки й мітки «червона» в списку означало б стверджувати те
+    // саме, тільки тихіше. Тому рівень знімаємо з усіх трьох місць одразу.
+    if (!data.levels_known) data.alerts.forEach((a) => { a.alert_level = null; });
     renderCards(data);
     renderChart(data);
     renderList(data);
@@ -261,6 +298,7 @@ async function load() {
       warn.hidden = true;
     }
   } catch (e) {
+    $('levels').hidden = true;
     $('list').innerHTML = `<div class="empty">Помилка: ${e.message}</div>`;
   }
 }

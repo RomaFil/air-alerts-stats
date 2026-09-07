@@ -34,6 +34,18 @@ def to_utc_iso(value: str | None) -> str | None:
     return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+# API віддає рівень малими літерами; чужі значення краще відкинути,
+# ніж мовчки записати в базу третій колір, якого UI не знає.
+LEVELS = {"red", "yellow"}
+
+
+def normalize_level(value) -> str | None:
+    if not isinstance(value, str):
+        return None
+    v = value.strip().lower()
+    return v if v in LEVELS else None
+
+
 def normalize(raw: dict) -> dict | None:
     """Сира тривога з API -> запис для БД. None, якщо не вистачає ключів."""
     if raw.get("id") is None or raw.get("location_uid") is None:
@@ -51,6 +63,7 @@ def normalize(raw: dict) -> dict | None:
         "location_title": raw.get("location_title"),
         "location_type": raw.get("location_type"),
         "alert_type": raw.get("alert_type"),
+        "alert_level": normalize_level(raw.get("alert_level")),
         "started_at": started,
         "finished_at": to_utc_iso(raw.get("finished_at")),
     }

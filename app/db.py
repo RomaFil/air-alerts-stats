@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     location_title  TEXT,
     location_type   TEXT,
     alert_type      TEXT,
+    alert_level     TEXT,                  -- 'red' | 'yellow' | NULL = джерело рівня не дає
     started_at      TEXT NOT NULL,         -- ISO 8601 UTC
     finished_at     TEXT,                  -- ISO 8601 UTC або NULL = триває
     finished_source TEXT,                  -- 'api' (підтверджено API) | 'poller' (оцінка збирача)
@@ -55,10 +56,23 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+def migrate(conn: sqlite3.Connection) -> None:
+    """Доливає колонки, яких немає в старій базі.
+
+    `CREATE TABLE IF NOT EXISTS` існуючу таблицю не чіпає, тому нові поля
+    треба додавати окремо — інакше база, створена до появи колонки, лишиться
+    без неї назавжди.
+    """
+    have = {r["name"] for r in conn.execute("PRAGMA table_info(alerts)")}
+    if "alert_level" not in have:
+        conn.execute("ALTER TABLE alerts ADD COLUMN alert_level TEXT")
+
+
 def init() -> None:
     from . import regions
     with connect() as conn:
         conn.executescript(SCHEMA)
+        migrate(conn)
         # статичний каталог як стартове наповнення; провайдер його потім уточнить
         if not conn.execute("SELECT 1 FROM regions LIMIT 1").fetchone():
             upsert_regions(conn, regions.seed_rows())
@@ -109,12 +123,16 @@ def upsert_alert(conn: sqlite3.Connection, a: dict, *, seen_now: bool) -> None:
     conn.execute(
         """
         INSERT INTO alerts (id, location_uid, location_title, location_type, alert_type,
-                            started_at, finished_at, finished_source, last_seen_at, updated_at)
-        VALUES (:id, :uid, :title, :ltype, :atype, :start, :fin, :src, :seen, :now)
+                            alert_level, started_at, finished_at, finished_source,
+                            last_seen_at, updated_at)
+        VALUES (:id, :uid, :title, :ltype, :atype, :alevel, :start, :fin, :src, :seen, :now)
         ON CONFLICT(id) DO UPDATE SET
             location_title  = excluded.location_title,
             location_type   = excluded.location_type,
             alert_type      = excluded.alert_type,
+            -- рівень тримаємо останній відомий: тривога може перетекти
+            -- з жовтої в червону, а COALESCE не дав би її оновити
+            alert_level     = COALESCE(excluded.alert_level, alerts.alert_level),
             started_at      = excluded.started_at,
             finished_at     = COALESCE(excluded.finished_at, alerts.finished_at),
             finished_source = CASE
@@ -127,6 +145,7 @@ def upsert_alert(conn: sqlite3.Connection, a: dict, *, seen_now: bool) -> None:
         {
             "id": a["id"], "uid": a["location_uid"], "title": a.get("location_title"),
             "ltype": a.get("location_type"), "atype": a.get("alert_type"),
+            "alevel": a.get("alert_level"),
             "start": a["started_at"], "fin": finished, "src": src,
             "seen": last_seen, "now": now,
         },

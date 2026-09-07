@@ -32,6 +32,22 @@ REGION_TYPE_MAP = {
 }
 
 
+def _level(alert: dict) -> str | None:
+    """Колір тривоги з activeAlertLevels.
+
+    Рівнів у списку буває більше одного (спостерігав 1 випадок з 47), тож
+    беремо старший: червоний важливіший за жовтий.
+    """
+    levels = {
+        (lvl.get("alertLevel") or "").strip().lower()
+        for lvl in alert.get("activeAlertLevels") or []
+    }
+    for candidate in ("red", "yellow"):
+        if candidate in levels:
+            return candidate
+    return None
+
+
 def _uid(raw) -> int | None:
     try:
         uid = int(raw)
@@ -91,6 +107,7 @@ class SirenProvider(Provider):
                     "location_title": title,
                     "location_type": rtype,
                     "alert_type": atype,
+                    "alert_level": _level(alert),
                     "started_at": started,
                     "finished_at": None,  # активна; кінець проставить збирач
                 })
