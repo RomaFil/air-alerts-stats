@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#12151b">
 <title>Тривоги — статистика за добу</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2312151b'/%3E%3Cpath d='M9 22v-6a7 7 0 0 1 14 0v6z' fill='%23ff7a59'/%3E%3Crect x='7' y='22' width='18' height='4' rx='1.5' fill='%23ff7a59'/%3E%3Cpath d='M16 2.5V5M7 5.5l1.7 1.7M25 5.5l-1.7 1.7' stroke='%23ff7a59' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/style.css?v={{v}}">
 </head>
 <body>
@@ -12,6 +13,11 @@
   <h1>Повітряні тривоги</h1>
   <p class="sub" id="status">…</p>
 </header>
+
+<div id="now" class="now" role="status" aria-live="polite" hidden>
+  <span class="now-dot" aria-hidden="true"></span>
+  <div><b id="now-text">…</b><span id="now-sub"></span></div>
+</div>
 
 <div class="modes" role="tablist">
   <button type="button" id="mode-day" class="on" role="tab" aria-selected="true">Одна доба</button>

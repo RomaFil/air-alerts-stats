@@ -81,6 +81,53 @@ def api_status():
         }
 
 
+# Збирач опитує джерело раз на хвилину-дві. Якщо від останнього опитування
+# минуло значно більше, «немає тривоги» могло б бути просто відсутністю даних —
+# тоді чесніше сказати, що статус невідомий, ніж показати зелене.
+STALE_AFTER = timedelta(minutes=10)
+
+
+@app.get("/api/now")
+def api_now(
+    uid: int = Query(..., description="location_uid регіону"),
+    scope: str = Query("with_children", description="with_children | exact"),
+):
+    """Чи триває повітряна тривога в регіоні просто зараз."""
+    uids = regions.family(uid) if scope == "with_children" else {uid}
+    placeholders = ",".join("?" * len(uids))
+    with db.connect() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT location_title, alert_level, started_at
+            FROM alerts
+            WHERE location_uid IN ({placeholders})
+              AND alert_type = 'air_raid'
+              AND finished_at IS NULL
+            ORDER BY started_at
+            """,
+            [*uids],
+        ).fetchall()
+        last_poll = db.get_meta(conn, "last_poll_at")
+
+    polled = parse_iso(last_poll)
+    stale = polled is None or datetime.now(timezone.utc) - polled > STALE_AFTER
+    level = None
+    if any(r["alert_level"] == "red" for r in rows):
+        level = "red"
+    elif any(r["alert_level"] == "yellow" for r in rows):
+        level = "yellow"
+    return {
+        "uid": uid,
+        "region_title": regions.title(uid),
+        "active": bool(rows),
+        "since": rows[0]["started_at"] if rows else None,
+        "level": level,
+        "places": [r["location_title"] for r in rows],
+        "last_poll_at": last_poll,
+        "stale": stale,
+    }
+
+
 @app.get("/api/stats")
 def api_stats(
     uid: int = Query(..., description="location_uid регіону"),

@@ -258,7 +258,47 @@ function setMode(mode) {
 }
 
 function refresh() {
+  loadNow();
   return MODE === 'day' ? load() : loadCompare();
+}
+
+// ---- статус «зараз» ----------------------------------------------------
+const kyivTime = (iso) => new Date(iso).toLocaleTimeString('uk-UA', {
+  hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Kyiv',
+});
+
+async function loadNow() {
+  const uid = $('region').value;
+  if (!uid) return;
+  const scope = $('children').checked ? 'with_children' : 'exact';
+  const box = $('now');
+  try {
+    const r = await fetch(`/api/now?uid=${uid}&scope=${scope}`);
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    // Відповідь могла запізнитись, поки регіон уже змінили.
+    if ($('region').value !== uid) return;
+    box.hidden = false;
+    box.className = 'now';
+    if (d.stale) {
+      $('now-text').textContent = `${d.region_title}: статус невідомий`;
+      $('now-sub').textContent = 'збирач давно не оновлював дані';
+    } else if (d.active) {
+      box.classList.add(d.level === 'yellow' ? 'yellow' : 'alert');
+      $('now-text').textContent = `${d.region_title}: зараз ТРИВОГА`;
+      const mins = Math.max(0, Math.round((Date.now() - new Date(d.since)) / 60000));
+      const where = $('children').checked && d.places.length > 1 && d.places.length <= 3
+        ? ` · ${d.places.join(', ')}` : '';
+      $('now-sub').textContent =
+        `з ${kyivTime(d.since)} · ${fmtDur(mins * 60)}${LEVEL_NAMES[d.level] ? ` · ${LEVEL_NAMES[d.level]}` : ''}${where}`;
+    } else {
+      box.classList.add('safe');
+      $('now-text').textContent = `${d.region_title}: тривоги немає`;
+      $('now-sub').textContent = `оновлено ${kyivTime(d.last_poll_at)}`;
+    }
+  } catch (e) {
+    box.hidden = true;
+  }
 }
 
 // ---- завантаження ------------------------------------------------------
@@ -352,6 +392,7 @@ async function init() {
   document.getElementById('controls').addEventListener('submit', (e) => e.preventDefault());
 
   setMode(localStorage.getItem(LS_MODE) === 'cmp' ? 'cmp' : 'day');
+  setInterval(loadNow, 30000);
 }
 
 init();
