@@ -1,3 +1,5 @@
+**English:** [README.en.md](README.en.md)
+
 # Air Alerts Stats
 
 Статистика повітряних тривог за обрану добу для будь-якої області, району чи
